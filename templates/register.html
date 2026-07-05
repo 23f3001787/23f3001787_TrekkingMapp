@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Register</h2>
+<form action="" method="POST">
+    <input type="text" name="username" placeholder="username" required/>
+    <br/><br/>
+    <input type="text" name="email" placeholder="email" required/>
+    <br/><br/>
+    <input type="text" name="password" placeholder="password" required/>
+    <br/><br/>
+
+    <label for="role">Joining As : </label> 
+    <select name="role" id="role">
+        <option value="trekker">Trekker</option>
+        <option value="staff">Trek Staff</option>
+    </select>
+    <br/><br/>
+
+    <input type="submit" value="Register Now"/>
+    
+    {% if error %}
+        <p style="color: red"><b>{{ error | default('') }}</b></p>
+    {% endif %}
+</form>
+
+
+{% endblock %}

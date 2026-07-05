@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Login</h2>
+<form action="" method="POST">
+    <input type="text" name="email" placeholder="email" required/>
+    <br/><br/>
+    <input type="text" name="password" placeholder="password" required/>
+    <br/><br/>
+    <input type="submit" value="Login"/>
+</form>
+<br>
+{% if error %}
+    <p style="color: red"><b>{{ error | default('') }}</b></p>
+    <br/>
+{% endif %}
+
+<p style="color:grey">Dont have an account yet? <a href="/register">Register Here!</a></p>
+
+{% endblock %}
