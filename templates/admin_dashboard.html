@@ -1,1 +1,481 @@
-<h1>ad</h1>
+{% extends "base.html" %}
+
+{% block content %}
+    <div class="container-fluid mt-4">
+        <div class="row">
+
+            <div class="col-md-3 col-lg-2 bg-light p-3 border-end min-vh 100">
+                <h5 class="text-success fw-bold">Command Center</h5>
+                <p class="text-muted-small">ADMINISTRATOR</p>
+                <hr>
+
+                <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
+                    <button class="nav-link {% if active_tab == 'overview'%}active{% endif %} text-start" data-bs-toggle="pill" data-bs-target="#overview" type="button">
+                        Overview
+                    </button>
+                    <button class="nav-link {% if active_tab == 'treks'%}active{% endif %} text-start" data-bs-toggle="pill" data-bs-target="#treks" type="button">
+                        Manage Treks
+                    </button>
+                    <button class="nav-link {% if active_tab == 'users'%}active{% endif %} text-start" data-bs-toggle="pill" data-bs-target="#users" type="button">
+                        Manage Users
+                    </button>
+                    <button class="nav-link {% if active_tab == 'bookings'%}active{% endif %} text-start" data-bs-toggle="pill" data-bs-target="#bookings" type="button">
+                        Trek History
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-9 col-lg-10 p-4">
+                <div class="tab-content" id="v-pills-tabContent">
+            
+                    <div class="tab-pane fade {% if active_tab == 'overview' %}show active{% endif %}" id="overview">
+                        <h2 class="mb-4">Overview</h2>
+
+                        <div class="row text-center mb-5">
+                             <div class="col-md-3">
+                                <div class="card border-success">
+                                    <div class="card-body">
+                                        <h6 class="text-muted">Trekkers</h6>
+                                        <h2 class="text-success">{{ users }}</h2>
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-success">
+                                    <div class="card-body">
+                                        <h6 class="text-muted">Staff</h6>
+                                        <h2 class="text-success">{{ staff }}</h2>
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-success">
+                                    <div class="card-body">
+                                        <h6 class="text-muted">Treks</h6>
+                                        <h2 class="text-success">{{ treks }}</h2>
+
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card border-success">
+                                    <div class="card-body">
+                                        <h6 class="text-muted">Bookings</h6>
+                                        <h2 class="text-success">{{ bookings }}</h2>
+
+                                    </div>
+                                </div>
+                            </div>
+
+
+                        </div>
+                        <h4>Staff Awaiting Approval</h4>
+                        <table class="table table-bordered table-striped">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>
+                                        Username
+                                    </th>
+                                    <th>
+                                        Email
+                                    </th>
+                                    <th>
+                                        Action
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for staff in pending_staff %}
+                                <tr>
+                                    <td>{{ staff.username}}</td>
+                                    <td>{{ staff.email}}</td>
+                                    <td>
+                                        <a href="/approve_staff/{{ staff.id }}" class="btn btn-success btn-sm">
+                                            Approve
+                                        </a>
+                                        <a href="/reject_staff/{{ staff.id }}" class="btn btn-danger btn-sm">
+                                            Reject
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center">
+                                        No Pending Staff Approvals
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+
+                    </div>
+
+                    <div class="tab-pane fade{% if active_tab == 'treks' %}show active {% endif %}" id="treks">
+                        <div class="row">
+                            <div class="col-md-8">
+                                
+                                    <h3 class="mb-0">All Treks</h3>
+                                    
+                                    <form action="/admin_dashboard" method="GET" class="d-flex">
+                                        <input type="hidden" name="open_tab" value="treks">
+
+                                        <div class="d-flex" style="max-width: 300px;">
+                                            <input type="text" name="search_trek" class="form-control form-control-sm me-2" placeholder="Search by Trek Name ...">
+                                            <button type="submit" class="btn btn-outline-success btn-sn">
+                                                Search
+                                            </button>
+                                        </div>
+                                    </form>
+
+                                <table class="table table-bordered table-striped">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Location</th>
+                                            <th>Slots</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for trek in all_treks %}
+                                        <tr>
+                                            <td>{{ trek.id }}</td>
+                                            <td>{{ trek.name }}</td>
+                                            <td>{{ trek.location }}</td>
+                                            <td>{{ trek.available_slots }}</td>
+                                            <td>
+                                                {% if trek.staff %}
+                                                <span class="badge bg-primary">
+                                                    {{ trek.staff.username }}
+                                                </span>
+                                                {% else %}
+                                                <span class="text-muted">
+                                                    Unassigned
+                                                </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-warning btn sm" data-bs-toggle="modal" data-bs-target="#editModal{{ trek.id }}">
+                                                    Edit
+                                                </button>
+                                                <a href="/delete_trek/{{ trek.id }}" class="btn btn-danger btn-sm">
+                                                    Remove
+                                                </a>
+                                            </td>
+                                        </tr>
+
+                                        <div class="modal fade" id="editModal{{ trek.id }}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-warning">
+                                                        <h5 class="modal-title">
+                                                            Edit Trek: {{ trek.name }}
+                                                        </h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal">
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <form action="/edit_trek/{{ trek.id }}" method="POST">
+
+                                                            <input type="text" name="name" class="form-control mb-3" value="{{ trek.name }}" required>
+                                                            <input type="text" name="location" class="form-control mb-3" value="{{ trek.location }}" required>
+                                                            <label class="form-label text-muted small mb-1">Difficulty:</label>
+                                                            <select name="difficulty" class="form-select mb-3">
+                                                                <option value="Easy" {% if trek.difficulty=='Easy' %}selected{% endif %}>
+                                                                    Easy
+                                                                </option>
+                                                                <option value="Moderate" {% if trek.difficulty=='Moderate' %}selected{% endif %}>
+                                                                    Moderate
+                                                                </option>
+                                                                <option value="Hard" {% if trek.difficulty=='Hard' %}selected{% endif %}>
+                                                                    Hard
+                                                                </option>
+                                                            </select>
+
+
+                                                            <label class="form-label text-muted small mb-1">
+                                                                Start Date:
+                                                            </label>
+                                                            <input type="date" name="start_date" class="form-control mb-3" value="{{ trek.start_date.strftime('%Y-%m-%d')}}" required>
+                                                            
+
+                                                            <input type="number" name="duration_days" class="form-control mb-3" value="{{ trek.duration_days }}" required>
+                                                            <input type="number" name="available_slots" class="form-control mb-4" value="{{ trek.available_slots }}" required>
+                                                            
+                                                            <label class="form-label text-muted small mb-1">
+                                                                Assign Staff :
+                                                            </label>
+                                                            <select name="staff_id" class="form-select mb-4">
+                                                                <option value="">
+                                                                     - - No Staff Assigned - - 
+                                                                </option>
+                                                                {% for staff in approve_staff %}
+                                                                <option value="{{ staff.id }}" {% if staff.id == trek.staff_id %}selected{% endif %}>
+                                                                
+                                                                    {{ staff.username }}
+                                                                
+                                                                </option>
+                                                                {% endfor %}
+
+                                                            </select>
+
+                                                            <button type="submit" class="btn btn-warning w-100 fw-bold">
+                                                                Save Changes
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                        <tr>
+                                            <td colspan="5" class="text-center">
+                                                No Treks Created Yet
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                        </div>
+                        
+                        
+                        <div class="col-md-4">
+                        <div class="card shadown-sm">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0">Create a New Trek</h5>
+                            </div>
+                            <div class="card-body">
+                                <form action="/create_trek" method="POST">
+                                    <input type="text" name="name" class="form-control mb-3" placeholder="Trek Name (e.g. Mt Fuji)" required>
+                                    <input type="text" name="location" class="form-control mb-3" placeholder="location" required>
+                                    <label class="form-label text-muted">Difficulty:</label>
+                                    <select name="difficulty" class="form-select mb-3">
+                                        <option value="Easy">Easy</option>
+                                        <option value="Moderate">Moderate</option>
+                                        <option value="Hard">Hard</option>
+                                    </select>
+
+                                    <label class="form-label text-muted small mb-1">
+                                        Start Date:
+                                    </label>
+                                    <input type="date" name="start_date" class="form-control mb-3" required>
+
+                                    <input type="number" name="duration_days" class="form-control mb-3" placeholder="Duration (Days)" required>
+                                    <input type="number" name="available_slots" class="form-control mb-3" placeholder="Total Slots" required>
+
+                                    <button type="submit" class="btn btn-success w-100">Create Trek</button>
+                                </form>
+                                    
+                            
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                    </div>
+
+                    <div class="tab-pane fade {% if active_tab == 'users' %}show active {% endif %}" id="users">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3>Manage Users & Staff</h3>
+
+                            <form class="d-flex" action="/admin_dashboard" method="GET">
+                                <input type="hidden" name="open_tab" value="users">
+                                <input class="form-control me-2" name="search_user" placeholder="Search by Name ...">
+                                
+                                <button class='btn btn-outline-success'type="submit">Search</button>
+                            </form>
+                        </div>
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for u in manageable_users %}
+                                <tr>
+                                    <td>{{ u.id }}</td>
+                                    <td>{{ u.username }}</td>
+                                    <td>{{ u.email }}</td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ u.role }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if u.status=='blacklisted' %}
+                                        <span class="badge bg-danger">
+                                            Blacklisted
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-success">
+                                            {{ u.status }}
+                                        </span> 
+
+                                        {% endif %}
+                            
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editUserModal{{ u.id }}">
+                                            Edit
+                                        </button>
+                                        
+                                        {% if u.status=='blacklisted' %}
+                                        <a href="/toggle_blacklist/{{ u.id }}" class="btn btn-outline-success btn-sm">
+                                            Un-Blacklist
+                                        </a>
+                                            
+                                        {% else %}
+                                        <a href="/toggle_blacklist/{{ u.id }}" class="btn btn-danger btn-sm">
+                                            Blacklist
+                                        </a>
+
+                                        {% endif %}
+                            
+                                    </td>
+                                
+                                </tr>
+
+
+                                <div class="modal fade" id="editUserModal{{ u.id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-warning">
+                                                <h5 class="modal-title">Edit User: {{ u.email }}</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal">
+                                                </button>
+
+                                            </div>
+                                            <div class="modal-body">
+                                                <form action="/edit_user/{{ u.id }}" method="POST">
+                                                    <label class="form-label small">Username</label>
+                                                    <input type="text" name="username" class="form-control mb-3" value="{{ u.username }}" required>
+
+                                                    <label class="form-label small">Reset Password(leave blank to keep current)</label>
+                                                    <input type="password" class="form-control mb-4" placeholder="Update password...">
+
+                                                    <button type="submit" class="btn btn-warning w-100 fw-fold">
+                                                        Save Changes
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center">
+                                        No Users Found
+                                    </td>
+                                </tr>
+                                {% endfor %}
+
+                            </tbody>
+                        </table>
+                    </div>
+
+
+                    <div class="tab-pane fade{% if active_tab == 'bookings' %}show active {% endif %}" id="bookings">
+                        <h3 class="mb-4">Trek & Bookings History</h3>
+                        <div class="accordion" id="trekHistoryAccordion">
+                            {% for trek in all_treks %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTrek{{ trek.id }}">
+                                        <div class="d-flex justify-content-between align-items-center w-100 pe-3">
+                                        <div class="text-truncate">
+                                            <div>
+                                                <span class="text-muted me-2">#{{ trek.id }}</span>
+                                                <strong class="fs-5">{{ trek.name }}</strong>
+                                            </div>
+                                            <span class="text-muted ms-1"><i class="bi bi-geo-alt">{{ trek.location }}</i></span>
+                                        </div>
+                                        <span class="badge bg-primary">
+                                            <i class="bi bi-calendar-event"></i>
+                                            {{ trek.start_date.strftime('%b %d,%Y')}}
+                                        </span>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-info text-dark">
+                                                {{ trek.duration_days }} Days
+                                            </span>
+
+                                            <span class="badge {% if trek.available_slots<5 %}bg-danger{% else %}bg-secondary{% endif %}">
+                                                {{ trek.available_slots}} Slots
+                                            </span>
+
+                                            <span class="badge bg-dark">{{ trek.status }}</span>
+                                            </div>
+                                        </div>
+                                    </button>
+                                </h2>
+                                <!-- hidden panel -->
+                                 <div id="collapseTrek{{ trek.id }}" class="accordion-collapse collapse" data-bs-parent="#trekHistoryAccordion">
+                                    <div class="accordion-body bg-light">
+                                        <!-- Staff Info -->
+                                        <p class="mb-3">
+                                            <strong>Assigned Staff</strong>
+                                            {% if trek.staff %}
+                                            <span class="badge bg-primary">{{ trek.staff.username }}</span>
+                                            {% else %}
+                                            <span class="text-muted">Unassigned</span>
+                                            {% endif %}
+                                        </p>
+                                        <!-- sub table of trekkers who booked -->
+                                        <h5>Trekkers Booked:</h5>
+                                        <table class="table table-sm table-bordered bg-white">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Booking ID</th>
+                                                    <th>Trekker Name</th>
+                                                    <th>Date Booked</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for b in trek.bookings %}
+                                                <tr>
+                                                    <td>#{{ b.id }}</td>
+                                                    <td>{{ b.user.username}}</td>
+                                                    <td>{{ b.booking_date.strftime('%Y-%m-%d') }}</td>
+                                                    <td>
+                                                        {% if b.status=='Booked' %}
+                                                        <span class="badge bg-success">Booked</span>
+                                                        {% else %}
+                                                        <span class="badge bg-secondary">{{ b.status }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% else %}
+                                                <tr>
+                                                    <td colspan="4" class="text-center text-muted">No Bookings for this Trek</td>
+
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                 </div>
+
+                            </div>
+                            {% else %}
+                            <p class="text-muted">No treks have been created yet</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+
+
+        </div>
+    </div>
+{% endblock %}
