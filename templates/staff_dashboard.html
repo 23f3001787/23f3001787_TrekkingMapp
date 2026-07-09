@@ -1,1 +1,134 @@
-<h1>sd</h1>
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!--left sidebar-->
+        <div class="col-md-3 col-lg-2 bg-light p-3 border-end min-vh-100">
+            <h5 class="text-primary fw-bold">Staff Panel</h5>
+            <hr>
+            <div class="nav flex-column nav-pills">
+                <button class="nav-link {% if active_tab=='profile'%}active{% endif %} text-start" data-bs-toggle="pill" data-bs-target="#profile" type="button">
+                    My Profile
+                </button>
+                <button class="nav-link {% if active_tab=='treks'%}active{% endif %} text-start" data-bs-toggle="pill" data-bs-target="#treks" type="button">
+                    My Treks
+                </button>
+            </div>
+        </div>
+        <!--right content area-->
+        <div class="col-md-9 col-lg-10 p-4">
+            <div class="tab-content">
+                <!--Tab 1 - my profile-->
+                <div class="tab-pane fade {% if active_tab=='profile' %}show active{% endif %}" id="profile">
+                    <h3>My Profile</h3>
+                    <div class="card mt-4" style="max-width:500px;">
+                        <div class="card-body">
+                            <form action="/update_staff_profile" method="POST">
+                                <label class="form-label">Username</label>
+                                <input type="text" name="username" class="form-control mb-3" value="{{ current_user.username }}" required>
+
+                                <label class="form-label">New Password(leave blank to keep current)</label>
+                                <input type="password" name="password" class="form-control mb-4" placeholder="Enter New Password ...">
+
+                                <button type="submit" class="btn btn-primary w-100">Save Profile</button>
+
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <!--tab 2 - my treks-->
+                <div class="tab-pane fade {% if active_tab=='treks'%}show active{% endif %}" id="treks">
+                    <h3>My Assigned Treks</h3>
+                    
+                    <div class="accordion" id="staffTreksAccordion">
+                        {% for trek in assigned_treks %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTrek{{ trek.id }}">
+                                    <span class="text-muted me-2">#{{ trek.id }}</span>
+                                    <strong class="fs-5">{{ trek.name }}</strong>
+                                    <span class="badge bg-dark ms-3">{{ trek.status }}</span>
+                                </button>
+                            </h2>
+                            <div id="collapseTrek{{ trek.id }}" class="accordion-collapse collapse" data-bs-parent="#staffTreksAccordion">
+                                <div class="accordion-body bg-light">
+                                    <!--trek control panel | 1-->
+                                    <div class="card mb-4 border-primary">
+                                        <div class="card-header bg-primary text-white fw-bold">Trek Controls</div>
+                                        <div class="card-body">
+                                            <form action="/update_staff_trek/{{ trek.id }}" method="POST" class="row align-items-end">
+                                                {% if trek.status=='Pending' %}
+                                                <div class="col-md-4">
+                                                    <label class="form-label small">Trek Status</label>
+                                                    <a href="/approve_staff_trek/{{ trek.id }}" class="btn btn-success w-100">
+                                                        &#10003; Approve
+                                                    </a>
+                                                </div>
+                                                {% else %}
+                                                <div class="col-md-4"></div>
+                                                    <label class="form-label small">Update Status</label>
+                                                    <select name="status" class="form-select">
+                                                        <option value="Open" {% if trek.status=='Open'%}selected{% endif %}>Open</option>
+                                                        <option value="Closed" {% if trek.status=='Closed'%}selected{% endif %}>Closed</option>
+                                                        <option value="Started" {% if trek.status=='Started'%}selected{% endif %}>Started</option>
+                                                        <option value="Ongoing" {% if trek.status=='Ongoing'%}selected{% endif %}>Ongoing</option>
+                                                        <option value="Completed" {% if trek.status=='Completed'%}selected{% endif %}>Completed</option>
+                                                    </select>
+                                                </div>
+                                                {% endif %}
+                                                <div class="col-md-4">
+                                                    
+                                                    <label class="form-label small">Available Slots</label>
+                                                    <input type="number" name="available_slots" class="form-control" value="{{ trek.available_slots }}" required>
+
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <!--participant list | 2-->
+                                    <h5 class="fw-bold">Registered Participants</h5>
+                                    <table class="table table-sm table-bordered bg-white">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <td>Booking ID</td>
+                                                <td>Trekker Name</td>
+                                                <td>Action</td>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for b in trek.bookings %}
+                                            <tr>
+                                                <td>#{{ b.id }}</td>
+                                                <td>{{ b.user.username }}</td>
+                                                <td>
+                                                    <!--kick button-->
+                                                    <a href="/staff_remove_participant/{{ b.id }}" class="btn btn-danger btn-sm">
+                                                        Remove
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% else %}
+                                            <tr>
+                                                <td colspan="3" class="text-center text-muted py-3">
+                                                    No Participants booked Yet.
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">You Have No Assigned Treks at this moment</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

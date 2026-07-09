@@ -227,7 +227,70 @@ def admin_dashboard():
 def staff_dashboard():
     if current_user.role != 'staff':
         return redirect('/')
-    return render_template('staff_dashboard.html')
+    active_tab = request.args.get('open_tab','profile')
+    
+    assigned_treks=current_user.assigned_treks
+    
+    return render_template('staff_dashboard.html',
+                           active_tab=active_tab,
+                           assigned_treks=assigned_treks)
+    
+
+@app.route('/update_staff_profile',methods=['POST'])
+@login_required
+def update_staff_profile():
+    if current_user.role!='staff':
+        return redirect('/')
+    current_user.username=request.form.get('username')
+    
+    new_password=request.form.get('password')
+    if new_password:
+        current_user.password=generate_password_hash(new_password)
+    db.session.commit()
+    
+    return redirect('/staff_dashboard?open_tab=profile')
+
+@app.route('/update_staff_trek/<int:id>',methods=['POST'])
+@login_required
+def update_staff_trek(id):
+    if current_user.role!='staff':
+        return redirect('/')
+    trek = Trek.query.get(id)
+    if trek and trek.staff_id==current_user.id:
+        new_status=request.form.get('status')
+        if new_status:
+            trek.status=new_status
+            
+        trek.available_slots=int(request.form.get('available_slots'))
+        db.session.commit()
+    return redirect('/staff_dashboard?open_tab=treks')
+
+
+@app.route('/approve_staff_trek/<int:id>')
+@login_required
+def approve_staff_trek(id):
+    if current_user.role!='staff':
+        return redirect('/')
+    trek = Trek.query.get(id)
+    if trek and trek.staff_id==current_user.id and trek.status=='Pending':
+        trek.status='Open'
+        db.session.commit()
+    return redirect('/staff_dashboard?open_tab=treks')
+
+
+
+
+@app.route('/staff_remove_participant/<int:booking_id>')
+@login_required
+def staff_remove_participant(booking_id):
+    if current_user.role!='staff':
+        return redirect('/')
+    booking = Booking.query.get(booking_id)
+    if booking and booking.trek.staff_id==current_user.id:
+        booking.trek.available_slots+=1
+        db.session.delete(booking)
+        db.session.commit()
+    return redirect('/staff_dashboard?open_tab=treks')
 
 @app.route('/trekker_dashboard')
 @login_required
@@ -369,5 +432,5 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(port=9191,debug=True)
     
