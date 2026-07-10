@@ -1,1 +1,112 @@
-<h1>td</h1>
+{% extends 'base.html' %}
+
+{% block content %}
+
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!--left sidebar-->
+
+
+        <div class="col-md-3 col-lg-2 bg-light p-3 border-end min-vh-100">
+            <h5 class="text-primary fw-bold">Trekker Panel</h5>
+            <hr>
+            <div class="nav flex-column nav-pills">
+                <button class="nav-link {% if active_tab=='profile' %}active{% endif %} text-start" data-bs-toggle="pill" data-bs-target="#profile" type="button">
+                    My profile
+                </button>
+                <button class="nav-link {% if active_tab == 'bookings' %}active{% endif %} text-start" data-bs-toggle="pill" data-bs-target="#bookings" type="button">
+                    My Bookings
+                </button>
+            </div>
+        </div>
+
+
+        <!--right content area-->
+        <div class="col-md-9 col-lg-10 p-4">
+            <div class="tab-content">
+
+                <!--tab 1 my profile -->
+                <div class="tab-pane fade {% if active_tab=='profile' %}show active{% endif %}" id="profile">
+                    <h3>My Profile</h3>
+                    <div class="card mt-4" style="max-width: 500px;">
+                        <div class="card-body">
+                            <form action="/update_trekker_profile" method="POST">
+                                <label class="form-label">Username</label>
+                                <input type="text" name="username" class="form-control mb-3" value="{{ current_user.username }}" required>
+
+                                <label class="form-label">New Password (leave blank to keep current) </label>
+                                <input type="password" name="password" class="form-control mb-4" placeholder="Enter New Password...">
+
+                                <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!--tab 2 my bookings-->
+                <div class="tab-pane fade {% if active_tab=='bookings' %}show active{% endif %}" id="bookings">
+                    <h3 class="mb-4">My Booking History</h3>
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-0">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Booking ID</th>
+                                        <th>Trek Name</th>
+                                        <th>Date Booked</th>
+                                        <th>Status</th>
+                                        <th>Trek Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for b in current_user.bookings %}
+                                    <tr>
+                                        <td>#{{ b.id }}</td>
+                                        <td class="fw-bold">{{ b.trek.name }}</td>
+                                        <td>{{ b.booking_date.strftime('%Y-%m-%d') }}</td>
+                                        
+                                        <td>
+                                
+                                            <span class="badge bg-success">
+                                                {{ b.status }}
+                                            </span>
+                                        </td>
+                                        <td>{{ b.trek.status }}</td>
+                                        <td>
+                                            <a href="/cancel_trekker_booking/{{ b.id }}" class="btn btn-outline-danger btn-sm">
+                                                Cancel Bookings
+                                            </a>
+                                        </td>
+
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4 text-muted">
+                                            You Haven't Booked any treks yet !
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+
+                </div>
+            </div>
+
+
+
+        </div>
+    </div>
+</div>
+
+
+
+
+
+{% endblock %}

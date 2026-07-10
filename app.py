@@ -100,7 +100,46 @@ def load_user(user_id):
 #routes
 @app.route("/")
 def home():
-    return render_template("index.html")
+    search_location=request.args.get('location','')
+    search_difficulty=request.args.get('difficulty','')
+    
+    query=Trek.query.filter(Trek.status=='Open',Trek.available_slots>0)
+    if search_location:
+        query=query.filter(Trek.location.ilike(f"%{search_location}%"))
+    
+    if search_difficulty:
+        query=query.filter(Trek.difficulty==search_difficulty)
+    available_treks=query.all()
+    
+    my_booked_trek_ids=[]
+    
+    if current_user.is_authenticated and current_user.role=='trekker':
+        my_booked_trek_ids=[b.trek_id for b in current_user.bookings]
+    
+    return render_template("index.html",available_treks=available_treks,
+                           my_booked_trek_ids=my_booked_trek_ids)
+    
+@app.route("/book_trek/<int:id>")
+@login_required
+def book_trek(id):
+    if current_user.role!='trekker':
+        return redirect('/')
+    
+    existing=Booking.query.filter_by(user_id=current_user.id,trek_id=id).first()
+    if existing:
+        return redirect('/?error=already_booked')
+    trek=Trek.query.get(id)
+    
+    if trek and trek.status=='Open' and trek.available_slots>0:
+        trek.available_slots-=1
+        
+        new_booking=Booking(user_id=current_user.id,trek_id=trek.id,status='Booked')
+        db.session.add(new_booking)
+        db.session.commit()
+    
+    return redirect('/trekker_dashboard?open_tab=bookings')
+    
+
 
 @app.route("/register", methods=['GET','POST'])
 def register():
@@ -297,7 +336,42 @@ def staff_remove_participant(booking_id):
 def trekker_dashboard():
     if current_user.role != 'trekker':
         return redirect('/')
-    return render_template('trekker_dashboard.html')
+    active_tab=request.args.get('open_tab','profile')
+    
+
+    return render_template('trekker_dashboard.html',
+                           active_tab=active_tab)
+
+
+
+@app.route('/cancel_trekker_booking/<int:booking_id>')
+@login_required
+def cancel_trekker_booking(booking_id):
+    if current_user.role != 'trekker':
+        return redirect('/')
+    booking=Booking.query.get(booking_id)
+    
+    if booking and booking.user_id ==current_user.id:
+        booking.trek.available_slots+=1
+        db.session.delete(booking)
+        db.session.commit()
+    
+
+    return redirect('/trekker_dashboard?open_tab=bookings')
+
+
+@app.route('/update_trekker_profile',methods=['POST'])
+@login_required
+def update_trekker_profile():
+    if current_user.role!='trekker':
+        return redirect('/')
+    current_user.username=request.form.get('username')
+    new_password=request.form.get('password')
+    if new_password:
+        current_user.password=generate_password_hash(new_password)
+    db.session.commit()
+    return redirect('/trekker_dashboard?open_tab=profile')
+
 
 
 @app.route('/approve_staff/<int:id>')
