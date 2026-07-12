@@ -5,7 +5,7 @@
     <div class="text-center mb-5 mt-4">
         <h1 class="display-5 fw-bold text-success">Find Your Next Adventure</h1>
         <p class="lead text-muted">Browse and book the most breathtaking adventures in the world!</p>
-        
+
         <!--search bar-->
         <div class="card bg-light border-0 shadow-sm mb-5">
             <div class="card-body">
@@ -19,11 +19,11 @@
                             Filter by Difficulty
                         </label>
                         <select name="difficulty" class="form-select">
-                        <option value="">Any Difficulty</option>
-                        <option value="Easy">Easy</option>
-                        <option value="Moderate">Moderate</option>
-                        <option value="Hard">Hard</option>
-                    </select>
+                            <option value="">Any Difficulty</option>
+                            <option value="Easy">Easy</option>
+                            <option value="Moderate">Moderate</option>
+                            <option value="Hard">Hard</option>
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <button type="submit" class="btn btn-primary w-100 fw-bold">
@@ -39,7 +39,8 @@
         <div class="col">
             <div class="card h-100 shadow-sm border-0">
 
-                <div style="height:200px ; background-color: #e9ecef ; display:flex ; align-items:center ; justify-content:center ; border-radius: 5px 5px 0 0;">
+                <div
+                    style="height:200px ; background-color: #e9ecef ; display:flex ; align-items:center ; justify-content:center ; border-radius: 5px 5px 0 0;">
                     <span class="text-muted">
                         <i class="bi bi-image"></i>
                         Trek Image
@@ -53,24 +54,24 @@
                         <li class="list-group-item px-0"><b>Duration:</b> {{ trek.duration_days }} Days</li>
                         <li class="list-group-item px-0"><b>Starts:</b> {{ trek.start_date.strftime('%d %b %Y') }}</li>
                         <li class="list-group-item px-0">
-                            <b>Slots Left:</b> 
+                            <b>Slots Left:</b>
                             <span class="badge bg-primary rounded-pill">{{ trek.available_slots }}</span>
                         </li>
                     </ul>
 
                     <!--logic button-->
                     {% if not current_user.is_authenticated %}
-                        <a href="/login" class="btn btn-outline-primary w-100">Login to Book</a>
+                    <a href="/login" class="btn btn-outline-primary w-100">Login to Book</a>
                     {% elif current_user.role!='trekker' %}
-                        <button class="btn btn-secondary w-100" disabled>Trekkers Only</button>
+                    <button class="btn btn-secondary w-100" disabled>Trekkers Only</button>
                     {% elif trek.id in my_booked_trek_ids %}
-                        <button class="btn btn-secondary w-100" disabled>Already Booked</button>
+                    <button class="btn btn-secondary w-100" disabled>Already Booked</button>
                     {% else %}
-                        <a href="/book_trek/{{ trek.id }}" class="btn btn-success w-100 fw-bold">
-                            Book Now
-                        </a>
+                    <a href="/book_trek/{{ trek.id }}" class="btn btn-success w-100 fw-bold">
+                        Book Now
+                    </a>
                     {% endif %}
-                    
+
                 </div>
             </div>
         </div>

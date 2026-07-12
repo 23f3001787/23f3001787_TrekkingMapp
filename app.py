@@ -100,6 +100,20 @@ def load_user(user_id):
 #routes
 @app.route("/")
 def home():
+    #search_query from the navbar
+    search_query = request.args.get('search_query','')
+    search_difficulty = request.args.get('difficulty','')
+
+    query = Trek.query.filter(Trek.status=='Open',Trek.available_slots>0)
+    if search_query:
+        query = query.filter(
+            Trek.name.ilike(f"%{search_query}%") | 
+            Trek.location.ilike(f"%{search_query}%")
+    )
+    if search_difficulty:
+        query = query.filter(Trek.difficulty==search_difficulty)
+
+
     search_location=request.args.get('location','')
     search_difficulty=request.args.get('difficulty','')
     
@@ -109,6 +123,8 @@ def home():
     
     if search_difficulty:
         query=query.filter(Trek.difficulty==search_difficulty)
+
+    
     available_treks=query.all()
     
     my_booked_trek_ids=[]
@@ -225,6 +241,8 @@ def admin_dashboard():
     pending_staff = User.query.filter_by(role='staff', status='pending').all()
     all_treks=Trek.query.all()
 
+    all_bookings=Booking.query.order_by(Booking.id.desc()).all()
+
     active_tab=request.args.get('open_tab','overview')
     
     approve_staff=User.query.filter_by(role='staff',status='approved').all()
@@ -256,7 +274,8 @@ def admin_dashboard():
                            all_treks=all_treks,
                            active_tab=active_tab,
                            approve_staff=approve_staff,
-                           manageable_users=manageable_users
+                           manageable_users=manageable_users,
+                           all_bookings=all_bookings
                         )
 
 
@@ -299,6 +318,14 @@ def update_staff_trek(id):
         new_status=request.form.get('status')
         if new_status:
             trek.status=new_status
+            if new_status=='Completed':
+                for b in trek.bookings:
+                    if b.status == 'Booked':
+                        b.status='Completed'
+            elif new_status=='Closed' or new_status=='Cancelled':
+                for b in trek.bookings:
+                    if b.status=='Booked':
+                        b.status='Canceled'
             
         trek.available_slots=int(request.form.get('available_slots'))
         db.session.commit()

@@ -1,45 +1,102 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TrekkingMapp</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>TrekkingMax</title>
+
+    <!-- Bootstrap 5.3 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=1.1">
+
+    <!-- Bootstrap JS (Needed for Dropdown profile to work) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 </head>
+
 <body>
-    <nav>
-        <h2>TrekkingMax</h2>
-        <div>
-            <a href="/">Home</a>
-            {% if current_user.is_authenticated %}
-                <span>
-                    <br><br>
-                    Welcome Back , <b>{{ current_user.username }}</b>
-                </span>
-                <br><br>
-                <a href="/dashboard">Dashboard</a>
+    {% block navbar %}
 
-                <a href="/logout">Logout</a>
-            {% else %}
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom py-3">
+        <div class="container-fluid px-4">
+            <!--LOGO-->
+            <a class="navbar-brand fw-bold text-brand fs-4" href="/">
+                <i class="bi bi-geo-alt-fill me-1"></i>TrekkingMax
+            </a>
 
-                <a href="/login">Login</a>
-                <a href="/register">Register</a>
+            <!--Mobile Toggle-->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                <span class="navbar-toggler-icon"></span>
+            </button>
 
-            {% endif %}
+            <div class="collapse navbar-collapse" id="navbarContent">
+                <!--left side-->
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-4 fw-semibold">
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="/">Explore</a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" href="/dashboard">Dashboard</a>
+                    </li>
+                    {% endif %}
+                </ul>
+                <!--right side-->
+                <div class="d-flex align-items-center gap-3">
+                    <!--pill search bar-->
+                    <form class="position-relative" action="/" method="GET" style="width:250px;">
+                        <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                        <input type="text" name="search_query" class="form-control rounded-pill ps-5 bg-light border-0"
+                            placeholder="Quick search...">
+                    </form>
 
-
+                    <!--Auth section-->
+                    {% if current_user.is_authenticated %}
+                    <div class="dropdown">
+                        <a href="#" class="d-block link-dark text-decoration-none" data-bs-toggle="dropdown">
+                            <!--circle pfp-->
+                            <div class="rounded-circle bg-brand text-white d-inline-flex justify-content-center align-items-center fw-bold"
+                                style="width: 42px; height: 42px;">
+                                {{ current_user.username[0] | upper }}
+                            </div>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-soft border-0 mt-2">
+                            <li>
+                                <h6 class='dropdown-header'>Hi,{{ current_user.username }}</h6>
+                            </li>
+                            <li>
+                                <hr class='dropdown-divider'>
+                            </li>
+                            <li><a class='dropdown-item' href='/dashboard'><i class="bi bi-person me-2"></i>Profile</a>
+                            </li>
+                            <li><a class='dropdown-item' href='/logout'><i
+                                        class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                        </ul>
+                    </div>
+                    {% else %}
+                    <!--this shows if not logged in-->
+                    <a href="/login" class="btn btn-brand rounded-pill px-4 fw-bold shadow-sm">
+                        Login
+                    </a>
+                    <a href="/register" class="btn btn-brand rounded-pill px-4 fw-bold shadow-sm">
+                        Register
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </nav>
+    {% endblock %}
 
     <main>
         {% block content %}
         {% endblock %}
     </main>
 
-     <footer>
-        <p>&copy; TrekkingMax Application</p>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
