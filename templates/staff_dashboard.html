@@ -1,131 +1,193 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <div class="row">
-        <!--left sidebar-->
-        <div class="col-md-3 col-lg-2 bg-light p-3 border-end min-vh-100">
-            <h5 class="text-primary fw-bold">Staff Panel</h5>
-            <hr>
-            <div class="nav flex-column nav-pills">
-                <button class="nav-link {% if active_tab=='profile'%}active{% endif %} text-start" data-bs-toggle="pill" data-bs-target="#profile" type="button">
-                    My Profile
-                </button>
-                <button class="nav-link {% if active_tab=='treks'%}active{% endif %} text-start" data-bs-toggle="pill" data-bs-target="#treks" type="button">
-                    My Treks
-                </button>
-            </div>
-        </div>
-        <!--right content area-->
-        <div class="col-md-9 col-lg-10 p-4">
-            <div class="tab-content">
-                <!--Tab 1 - my profile-->
-                <div class="tab-pane fade {% if active_tab=='profile' %}show active{% endif %}" id="profile">
-                    <h3>My Profile</h3>
-                    <div class="card mt-4" style="max-width:500px;">
-                        <div class="card-body">
-                            <form action="/update_staff_profile" method="POST">
-                                <label class="form-label">Username</label>
-                                <input type="text" name="username" class="form-control mb-3" value="{{ current_user.username }}" required>
 
-                                <label class="form-label">New Password(leave blank to keep current)</label>
-                                <input type="password" name="password" class="form-control mb-4" placeholder="Enter New Password ...">
+<div class="dashboard-wrapper pt-5 pb-5">
 
-                                <button type="submit" class="btn btn-primary w-100">Save Profile</button>
+    <div class="container bg-white shadow-soft rounded-4 overflow-hidden" style="opacity: 0.96;">
+        <!-- Elongate the box using inline style min-height -->
+        <div class="row" style="min-height: 80vh;">
+            
+            <!-- Left Sidebar -->
+            <div class="col-md-3 col-lg-2 bg-light p-4 border-end">
 
-                            </form>
-                        </div>
-                    </div>
+                <h5 class="text-brand fw-bold mb-4"><i class="bi bi-shield-lock-fill me-2"></i>Staff Panel</h5>
+                <div class="nav flex-column nav-pills gap-2">
+
+                    <button class="nav-link active text-start fw-semibold rounded-pill" data-bs-toggle="pill" data-bs-target="#overview" type="button">
+                        <i class="bi bi-pie-chart-fill me-2"></i>Overview
+                    </button>
+                    <button class="nav-link text-start fw-semibold rounded-pill" data-bs-toggle="pill" data-bs-target="#treks" type="button">
+                        <i class="bi bi-map-fill me-2"></i>My Treks
+                    </button>
+
                 </div>
-                <!--tab 2 - my treks-->
-                <div class="tab-pane fade {% if active_tab=='treks'%}show active{% endif %}" id="treks">
-                    <h3>My Assigned Treks</h3>
-                    
-                    <div class="accordion" id="staffTreksAccordion">
-                        {% for trek in assigned_treks %}
-                        <div class="accordion-item">
-                            <h2 class="accordion-header">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTrek{{ trek.id }}">
-                                    <span class="text-muted me-2">#{{ trek.id }}</span>
-                                    <strong class="fs-5">{{ trek.name }}</strong>
-                                    <span class="badge bg-dark ms-3">{{ trek.status }}</span>
-                                </button>
-                            </h2>
-                            <div id="collapseTrek{{ trek.id }}" class="accordion-collapse collapse" data-bs-parent="#staffTreksAccordion">
-                                <div class="accordion-body bg-light">
-                                    <!--trek control panel | 1-->
-                                    <div class="card mb-4 border-primary">
-                                        <div class="card-header bg-primary text-white fw-bold">Trek Controls</div>
-                                        <div class="card-body">
-                                            <form action="/update_staff_trek/{{ trek.id }}" method="POST" class="row align-items-end">
-                                                {% if trek.status=='Pending' %}
-                                                <div class="col-md-4">
-                                                    <label class="form-label small">Trek Status</label>
-                                                    <a href="/approve_staff_trek/{{ trek.id }}" class="btn btn-success w-100">
-                                                        &#10003; Approve
-                                                    </a>
-                                                </div>
-                                                {% else %}
-                                                <div class="col-md-4"></div>
-                                                    <label class="form-label small">Update Status</label>
-                                                    <select name="status" class="form-select">
-                                                        <option value="Open" {% if trek.status=='Open'%}selected{% endif %}>Open</option>
-                                                        <option value="Closed" {% if trek.status=='Closed'%}selected{% endif %}>Closed</option>
-                                                        <option value="Started" {% if trek.status=='Started'%}selected{% endif %}>Started</option>
-                                                        <option value="Ongoing" {% if trek.status=='Ongoing'%}selected{% endif %}>Ongoing</option>
-                                                        <option value="Completed" {% if trek.status=='Completed'%}selected{% endif %}>Completed</option>
-                                                    </select>
-                                                </div>
-                                                {% endif %}
-                                                <div class="col-md-4">
-                                                    
-                                                    <label class="form-label small">Available Slots</label>
-                                                    <input type="number" name="available_slots" class="form-control" value="{{ trek.available_slots }}" required>
 
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <button type="submit" class="btn btn-primary w-100">Save Changes</button>
-                                                </div>
-                                            </form>
-                                        </div>
+            </div>
+
+            <!-- Right Content Area -->
+            <div class="col-md-9 col-lg-10 p-5">
+                <div class="tab-content">
+                    
+                    <!-- Tab 1 > OVERVIEW -->
+                    <div class="tab-pane fade show active" id="overview">
+
+                        <h3 class="fw-bold text-brand mb-4">Dashboard Overview</h3>
+                        <div class="row g-4">
+
+                            <!-- Assigned Treks Stat -->
+                            <div class="col-md-6">
+                                <div class="card border-0 shadow-sm rounded-4 h-100 bg-light">
+                                    <div class="card-body p-4 text-center">
+                                        <i class="bi bi-map text-brand mb-3" style="font-size: 3rem;"></i>
+                                        <h2 class="fw-bold">{{ assigned_treks|length }}</h2>
+                                        <p class="text-muted mb-0 fw-semibold">Assigned Treks</p>
                                     </div>
-                                    <!--participant list | 2-->
-                                    <h5 class="fw-bold">Registered Participants</h5>
-                                    <table class="table table-sm table-bordered bg-white">
-                                        <thead class="table-dark">
-                                            <tr>
-                                                <td>Booking ID</td>
-                                                <td>Trekker Name</td>
-                                                <td>Action</td>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for b in trek.bookings %}
-                                            <tr>
-                                                <td>#{{ b.id }}</td>
-                                                <td>{{ b.user.username }}</td>
-                                                <td>
-                                                    <!--kick button-->
-                                                    <a href="/staff_remove_participant/{{ b.id }}" class="btn btn-danger btn-sm">
-                                                        Remove
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                            {% else %}
-                                            <tr>
-                                                <td colspan="3" class="text-center text-muted py-3">
-                                                    No Participants booked Yet.
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Total Participants Stat -->
+                            {% set ns = namespace(total_participants=0) %}
+                            {% for t in assigned_treks %}
+                                {% set ns.total_participants = ns.total_participants + t.bookings|length %}
+                            {% endfor %}
+
+                            <div class="col-md-6">
+                                <div class="card border-0 shadow-sm rounded-4 h-100 bg-light">
+                                    <div class="card-body p-4 text-center">
+
+                                        <i class="bi bi-people text-brand mb-3" style="font-size: 3rem;"></i>
+                                        <h2 class="fw-bold">{{ ns.total_participants }}</h2>
+                                        <p class="text-muted mb-0 fw-semibold">Total Participants</p>
+
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    {% else %}
-                    <p class="text-muted">You Have No Assigned Treks at this moment</p>
-                    {% endfor %}
+
+                    <!-- Tab 2: MY TREKS -->
+                    <div class="tab-pane fade" id="treks">
+                        <h3 class="fw-bold text-brand mb-4">Manage My Treks</h3>
+                        
+                        <div class="accordion shadow-sm rounded-4 overflow-hidden" id="staffTreksAccordion">
+
+                            {% for trek in assigned_treks %}
+                            <div class="accordion-item border-0 border-bottom">
+
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed bg-white fw-bold text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTrek{{ trek.id }}">
+                                        <span class="text-brand me-3">#{{ trek.id }}</span>
+                                        <span class="fs-5 me-auto">{{ trek.name }}</span>
+                                        <span class="badge bg-dark rounded-pill px-3 me-3">{{ trek.status }}</span>
+                                    </button>
+                                </h2>
+
+                                <div id="collapseTrek{{ trek.id }}" class="accordion-collapse collapse" data-bs-parent="#staffTreksAccordion">
+                                    <div class="accordion-body bg-light p-4">
+                                        
+                                        <!-- Trek Control Panel -->
+                                        <div class="card mb-4 border-0 shadow-sm rounded-4">
+                                            
+                                            <div class="card-header bg-brand text-white fw-bold rounded-top-4 py-3">
+                                                <i class="bi bi-sliders me-2"></i>Trek Controls
+                                            </div>
+
+                                            <div class="card-body p-4">
+                                                <form action="/update_staff_trek/{{ trek.id }}" method="POST" class="row align-items-end g-3">
+
+                                                    {% if trek.status == 'Pending' %}
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-semibold">Trek Status</label>
+                                                        <a href="/approve_staff_trek/{{ trek.id }}" class="btn btn-success w-100 rounded-pill fw-bold shadow-sm">
+                                                            <i class="bi bi-check-circle-fill me-2"></i>Approve Trek
+                                                        </a>
+                                                    </div>
+
+                                                    {% else %}
+
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-semibold">Update Status</label>
+                                                        <select name="status" class="form-select rounded-pill">
+                                                            <option value="Open" {% if trek.status=='Open'%}selected{% endif %}>Open</option>
+                                                            <option value="Closed" {% if trek.status=='Closed'%}selected{% endif %}>Closed</option>
+                                                            <option value="Started" {% if trek.status=='Started'%}selected{% endif %}>Started</option>
+                                                            <option value="Ongoing" {% if trek.status=='Ongoing'%}selected{% endif %}>Ongoing</option>
+                                                            <option value="Completed" {% if trek.status=='Completed'%}selected{% endif %}>Completed</option>
+                                                        </select>
+                                                    </div>
+
+                                                    {% endif %}
+                                                    
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-semibold">Available Slots</label>
+                                                        <input type="number" name="available_slots" class="form-control rounded-pill" value="{{ trek.available_slots }}" required>
+                                                    </div>
+                                                    
+                                                    <div class="col-md-4">
+                                                        <button type="submit" class="btn btn-brand w-100 rounded-pill fw-bold shadow-sm">
+                                                            Save Changes
+                                                        </button>
+                                                    </div>
+
+                                                </form>
+
+                                            </div>
+                                        </div>
+
+                                        <!--Participant list -->
+                                        <h5 class="fw-bold text-brand mb-3"><i class="bi bi-people-fill me-2"></i>Registered Participants</h5>
+
+                                        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+
+                                            <table class="table table-hover mb-0 align-middle">
+
+                                                <thead class="bg-light">
+                                                    <tr>
+                                                        <th class="border-0 py-3 ps-4">Booking ID</th>
+                                                        <th class="border-0 py-3">Trekker Name</th>
+                                                        <th class="border-0 py-3 text-end pe-4">Action</th>
+                                                    </tr>
+                                                </thead>
+
+                                                <tbody class="border-top-0 bg-white">
+                                                    {% for b in trek.bookings %}
+                                                    <tr>
+                                                        <td class="ps-4 fw-bold text-muted">#{{ b.id }}</td>
+                                                        <td class="fw-semibold">{{ b.user.username }}</td>
+                                                        <td class="text-end pe-4">
+                                                            <a href="/staff_remove_participant/{{ b.id }}" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold">
+                                                                Remove
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                    {% else %}
+                                                    <tr>
+                                                        <td colspan="3" class="text-center text-muted py-4">
+                                                            No Participants Booked Yet.
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+
+                                            </table>
+
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            </div>
+                            {% else %}
+
+                            <div class="text-center py-5">
+                                <p class="text-muted lead">You have no assigned treks at this moment.</p>
+                            </div>
+
+                            {% endfor %}
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>

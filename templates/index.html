@@ -1,88 +1,164 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="text-center mb-5 mt-4">
-        <h1 class="display-5 fw-bold text-success">Find Your Next Adventure</h1>
-        <p class="lead text-muted">Browse and book the most breathtaking adventures in the world!</p>
 
-        <!--search bar-->
-        <div class="card bg-light border-0 shadow-sm mb-5">
+<style>
+    .bgimage{
+        background-image: url('/static/images/mountain.avif');
+        background-size:cover;
+        background-position:center;
+        min-height: 50vh;
+    }
+</style>
+
+
+<!--banner part-->
+<div class="position-relative d-flex align-items-center justify-content-center bgimage">
+    
+    <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark" style="opacity: 0.4;"></div>
+    
+    <div class="position-relative text-center text-white mt-5">
+
+        <h1 class="display-4 fw-bold">Find Your Next Adventure</h1>
+        <p class="lead mb-4" style="opacity: 0.86;">Browse and Book the most Breathtaking Treks in the World</p>
+        
+        <!--filter bar-->
+        <div class="card bg-white border-0 mx-auto" style="max-width: 600px; border-radius: 50px;">
+            
             <div class="card-body">
-                <form action="/" method="GET" class="row g-2 align-items-end">
-                    <div class="col-md-5">
-                        <label class="form-label small fw-bold">Search by location</label>
-                        <input type="text" name="location" class="form-control" placeholder="Himalaya , Bangalore...">
+
+                <form action="/" method="GET" class="row align-items-center m-0">
+
+                    <input type="hidden" name="search_query" value="{{ search_query }}">
+                    
+                    <div class="col-md-4">
+                        <input type="number" name="duration" class="form-control border-0 bg-transparent ps-4" placeholder="Maximum Days" value="{{ search_duration }}" min="1" style="box-shadow: none;">
                     </div>
-                    <div class="col-md-5">
-                        <label class="form-label small fw-bold">
-                            Filter by Difficulty
-                        </label>
-                        <select name="difficulty" class="form-select">
+
+                    <div class="col-md-5 border-start">
+                        <select name="difficulty" class="form-select border-0 bg-transparent" style="box-shadow: none;">
+                            
                             <option value="">Any Difficulty</option>
-                            <option value="Easy">Easy</option>
-                            <option value="Moderate">Moderate</option>
-                            <option value="Hard">Hard</option>
+                            <option value="Easy" {% if search_difficulty == 'Easy' %}selected{% endif %}>Easy</option>
+                            <option value="Moderate" {% if search_difficulty == 'Moderate' %}selected{% endif %}>Moderate</option>
+                            <option value="Hard" {% if search_difficulty == 'Hard' %}selected{% endif %}>Hard</option>
+
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary w-100 fw-bold">
-                            Search
-                        </button>
+
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-brand rounded-pill w-100 fw-bold shadow-sm">Filter</button>
                     </div>
+
                 </form>
+                
             </div>
         </div>
+    </div>
+</div>
 
-        <!--trek grid-->
+
+<!-- treks display -->
+<div class="container py-5">
+    
+    <div class="row row-cols-md-3 row-cols-1 g-4">
         {% for trek in available_treks %}
+        
+        <!--trek allowed to be booked ??-->
+        {% set is_bookable = (trek.status == 'Open' and trek.available_slots > 0) %}
+        
         <div class="col">
-            <div class="card h-100 shadow-sm border-0">
+            <!-- if not bookable -->
+            <div class="card h-100 rounded-4 border-0 shadow-soft {% if not is_bookable %}opacity-50{% endif %}">
+                
+                <!--status badge-->
+                <div class="position-absolute top-0 end-0 m-3">
 
-                <div
-                    style="height:200px ; background-color: #e9ecef ; display:flex ; align-items:center ; justify-content:center ; border-radius: 5px 5px 0 0;">
-                    <span class="text-muted">
-                        <i class="bi bi-image"></i>
-                        Trek Image
-                    </span>
-                </div>
-                <div class="card body">
-                    <h5 class="card-title text-success fw-bold">{{ trek.name }}</h5>
-                    <h6 class="card-subtitle mb-3 text-muted">{{ trek.location }}</h6>
-                    <ul class="list-group list-group-flush mb-4 small">
-                        <li class="list-group-item px-0"><b>Difficulty:</b> {{ trek.difficulty }}</li>
-                        <li class="list-group-item px-0"><b>Duration:</b> {{ trek.duration_days }} Days</li>
-                        <li class="list-group-item px-0"><b>Starts:</b> {{ trek.start_date.strftime('%d %b %Y') }}</li>
-                        <li class="list-group-item px-0">
-                            <b>Slots Left:</b>
-                            <span class="badge bg-primary rounded-pill">{{ trek.available_slots }}</span>
-                        </li>
-                    </ul>
-
-                    <!--logic button-->
-                    {% if not current_user.is_authenticated %}
-                    <a href="/login" class="btn btn-outline-primary w-100">Login to Book</a>
-                    {% elif current_user.role!='trekker' %}
-                    <button class="btn btn-secondary w-100" disabled>Trekkers Only</button>
-                    {% elif trek.id in my_booked_trek_ids %}
-                    <button class="btn btn-secondary w-100" disabled>Already Booked</button>
+                    {% if trek.status== 'Open' %}
+                        <span class="badge bg-success shadow-sm px-3 py-2 rounded-pill">Open</span>
+                    {% elif trek.status== 'Ongoing' %}
+                        <span class="badge bg-warning text-dark shadow-sm px-3 py-2 rounded-pill">Ongoing</span>
+                    {% elif trek.status == 'Completed' %}
+                        <span class="badge bg-secondary shadow-sm px-3 py-2 rounded-pill">Completed</span>
+                    {% elif trek.status == 'Cancelled' %}
+                        <span class="badge bg-danger shadow-sm px-3 py-2 rounded-pill">Cancelled</span>
                     {% else %}
-                    <a href="/book_trek/{{ trek.id }}" class="btn btn-success w-100 fw-bold">
-                        Book Now
-                    </a>
+                        <span class="badge bg-dark shadow-sm px-3 py-2 rounded-pill">{{ trek.status }}</span>
                     {% endif %}
 
                 </div>
+
+                <div class="card-body p-4 mt-4">
+
+                    <h5 class="card-title fw-bold text-brand mb-1">{{ trek.name }}</h5>
+
+                    <p class="text-muted small mb-3">
+                        <i class="bi bi-geo-alt-fill me-1 text-danger"></i>{{ trek.location }}
+                    </p>
+                    
+                    <ul class="list-unstyled mb-4 text-secondary small">
+                        <li class="mb-2"><i class="bi bi-bar-chart-fill me-2"></i><strong>Difficulty:</strong> {{ trek.difficulty }}</li>
+                        <li class="mb-2"><i class="bi bi-calendar-check me-2"></i><strong>Start Date:</strong> {{ trek.start_date.strftime('%b %d, %Y')}}</li>
+                        <li class="mb-2"><i class="bi bi-clock-history me-2"></i><strong>Duration:</strong> {{ trek.duration_days }} days</li>
+                        <li class="mb-2"><i class="bi bi-people-fill me-2"></i><strong>Slots left:</strong> {{ trek.available_slots }}</li>
+                    </ul>
+
+                </div>
+                
+                <div class="card-footer bg-white border-0 p-4 pt-0">
+
+                    {% if is_bookable %}
+
+                        {% if current_user.is_authenticated and current_user.role =='trekker' %}
+
+                            {% if trek.id in my_booked_trek_ids %}
+
+                                <button class="btn btn-secondary w-100 rounded-pill fw-bold" disabled>
+                                    <i class="bi bi-check-circle-fill me-2"></i>Already Booked
+                                </button>
+
+                            {% elif trek.id in my_cancelled_trek_ids %}
+
+                                <button class="btn btn-danger w-100 rounded-pill fw-bold" disabled>
+                                    <i class="bi bi-x-circle-fill me-2"></i>Unavailable
+                                </button>
+
+                            {% else %}
+
+                                <a href="/book_trek/{{ trek.id }}" class="btn btn-brand w-100 rounded-pill fw-bold shadow-sm">
+                                    Book Now
+                                </a>
+
+                            {% endif %}
+
+                        {% elif current_user.is_authenticated %}
+                             <button class="btn btn-outline-secondary w-100 rounded-pill fw-bold" disabled>Staff Cannot Book</button>
+
+                        {% else %}
+                            <a href="/login" class="btn btn-outline-success w-100 rounded-pill fw-bold">
+                                Login to Book
+                            </a>
+                        {% endif %}
+
+                    {% else %}
+                        <!-- Disabled Button for non bookable treks -->
+                        <button class="btn btn-secondary w-100 rounded-pill fw-bold" disabled>
+                            <i class="bi bi-x-circle me-2"></i>{{ 'Sold Out' if trek.status == 'Open' else trek.status }}
+                        </button>
+
+                    {% endif %}
+                </div>
             </div>
         </div>
-
         {% else %}
+
         <div class="col-12 text-center py-5">
-            <p class="text-muted fs-5">
-                No Treks found matching your criteria.
-            </p>
+            <h3 class="text-muted"><i class="bi bi-emoji-frown me-2"></i>No treks found</h3>
+            <p>Try adjusting your search filters.</p>
         </div>
+
         {% endfor %}
     </div>
 </div>
+
 {% endblock %}

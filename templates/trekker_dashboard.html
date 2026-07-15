@@ -1,112 +1,136 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<div class="dashboard-wrapper pt-5 pb-5">
+    <div class="container bg-white shadow-soft rounded-4 overflow-hidden" style="opacity: 0.96;">
+        <div class="row" style="min-height: 80vh;">
+            
+            <!-- Left sidebar-->
+            <div class="col-md-3 col-lg-2 bg-light p-4 border-end">
 
+                <h5 class="text-brand fw-bold mb-4"><i class="bi bi-person-lines-fill me-2"></i>Trekker Panel</h5>
+                <div class="nav flex-column nav-pills gap-2">
 
-<div class="container-fluid mt-4">
-    <div class="row">
-        <!--left sidebar-->
+                    <button class="nav-link active text-start fw-semibold rounded-pill" data-bs-toggle="pill" data-bs-target="#upcoming" type="button">
+                        <i class="bi bi-calendar-event me-2"></i>Upcoming
+                    </button>
 
+                    <button class="nav-link text-start fw-semibold rounded-pill" data-bs-toggle="pill" data-bs-target="#history" type="button">
+                        <i class="bi bi-clock-history me-2"></i>Booking History
+                    </button>
 
-        <div class="col-md-3 col-lg-2 bg-light p-3 border-end min-vh-100">
-            <h5 class="text-primary fw-bold">Trekker Panel</h5>
-            <hr>
-            <div class="nav flex-column nav-pills">
-                <button class="nav-link {% if active_tab=='profile' %}active{% endif %} text-start" data-bs-toggle="pill" data-bs-target="#profile" type="button">
-                    My profile
-                </button>
-                <button class="nav-link {% if active_tab == 'bookings' %}active{% endif %} text-start" data-bs-toggle="pill" data-bs-target="#bookings" type="button">
-                    My Bookings
-                </button>
+                </div>
             </div>
-        </div>
 
+            <!-- Right Content Area -->
+            <div class="col-md-9 col-lg-10 p-5">
+                <div class="tab-content">
 
-        <!--right content area-->
-        <div class="col-md-9 col-lg-10 p-4">
-            <div class="tab-content">
+                    <!-- TAB 1: UPCOMING TREKS -->
+                    <div class="tab-pane fade show active" id="upcoming">
+                        <h3 class="fw-bold text-brand mb-4">Upcoming Treks</h3>
+                        
+                        <div class="row row-cols-1 row-cols-md-2 g-4">
+                            {% set ns = namespace(has_upcoming=false) %}
+                            {% for b in current_user.bookings %}
+                                <!-- Only show bookings if Trek is still Open -->
+                                {% if b.status in ['Booked', 'in-process'] and b.trek.status == 'Open' %}
 
-                <!--tab 1 my profile -->
-                <div class="tab-pane fade {% if active_tab=='profile' %}show active{% endif %}" id="profile">
-                    <h3>My Profile</h3>
-                    <div class="card mt-4" style="max-width: 500px;">
-                        <div class="card-body">
-                            <form action="/update_trekker_profile" method="POST">
-                                <label class="form-label">Username</label>
-                                <input type="text" name="username" class="form-control mb-3" value="{{ current_user.username }}" required>
+                                    {% set ns.has_upcoming = true %}
+                                    <div class="col">
+                                        <div class="card h-100 border-0 shadow-sm rounded-4">
+                                            <div class="card-body p-4">
 
-                                <label class="form-label">New Password (leave blank to keep current) </label>
-                                <input type="password" name="password" class="form-control mb-4" placeholder="Enter New Password...">
+                                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                                    <h5 class="fw-bold text-dark mb-0">{{ b.trek.name }}</h5>
+                                                    <span class="badge bg-success rounded-pill px-3 shadow-sm">{{ b.status }}</span>
+                                                </div>
 
-                                <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+                                                <p class="text-muted small mb-2"><i class="bi bi-geo-alt-fill me-1 text-danger"></i>{{ b.trek.location }}</p>
+                                                <p class="text-muted small mb-4"><i class="bi bi-calendar me-1"></i>Starts: {{ b.trek.start_date.strftime('%b %d, %Y') }}</p>
+                                                
+                                                {% if b.status == 'in-process' %}
+                                                    <a href="/payment/{{ b.id }}" class="btn btn-warning w-100 rounded-pill fw-bold shadow-sm mb-2">
+                                                        Complete Payment
+                                                    </a>
+                                                {% endif %}
+                                                <a href="/cancel_trekker_booking/{{ b.id }}" class="btn btn-outline-danger w-100 rounded-pill fw-bold shadow-sm">
+                                                    Cancel Booking
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if not ns.has_upcoming %}
+                            
+                                <div class="col-12 text-center py-5">
+                                    <p class="text-muted lead">You have no upcoming treks. Go explore!</p>
+                                    <a href="/" class="btn btn-brand rounded-pill px-4 fw-bold shadow-sm mt-2">Find Treks</a>
+                                </div>
 
-                            </form>
+                            {% endif %}
                         </div>
                     </div>
-                </div>
 
+                    <!--Tab 2 - BOOKING HISTORY-->
+                    <div class="tab-pane fade" id="history">
+                        <h3 class="fw-bold text-brand mb-4">Booking History</h3>
+                        
+                        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
 
-                <!--tab 2 my bookings-->
-                <div class="tab-pane fade {% if active_tab=='bookings' %}show active{% endif %}" id="bookings">
-                    <h3 class="mb-4">My Booking History</h3>
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body p-0">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-dark">
-                                    <tr>
-                                        <th>Booking ID</th>
-                                        <th>Trek Name</th>
-                                        <th>Date Booked</th>
-                                        <th>Status</th>
-                                        <th>Trek Status</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for b in current_user.bookings %}
-                                    <tr>
-                                        <td>#{{ b.id }}</td>
-                                        <td class="fw-bold">{{ b.trek.name }}</td>
-                                        <td>{{ b.booking_date.strftime('%Y-%m-%d') }}</td>
+                            <div class="table-responsive">
+
+                                <table class="table table-hover mb-0 align-middle">
+
+                                    <thead class="bg-light">
+                                        <tr>
+                                            <th class="border-0 py-3 ps-4">Trek Name</th>
+                                            <th class="border-0 py-3">Date Booked</th>
+                                            <th class="border-0 py-3">Your Status</th>
+                                            <th class="border-0 py-3">Trek Status</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody class="border-top-0">
+                                        {% set ns2 = namespace(has_history=false) %}
+                                        {% for b in current_user.bookings %}
+                                            <!-- Show cancelled bookings or treks that have started/finished -->
+                                            {% if b.status in ['Cancelled', 'Canceled', 'Removed'] or b.trek.status != 'Open' %}
+                                                {% set ns2.has_history = true %}
+                                                <tr>
+                                                    <td class="fw-bold ps-4 text-dark">{{ b.trek.name }}</td>
+                                                    <td class="text-muted">{{ b.booking_date.strftime('%b %d, %Y') }}</td>
+                                                    <td>
+                                                        <span class="badge {% if b.status in ['Cancelled', 'Canceled', 'Removed'] %}bg-danger{% else %}bg-secondary{% endif %} rounded-pill px-3 shadow-sm">
+                                                            {{ b.status }}
+                                                        </span>
+                                                    </td>
+                                                    <td><span class="badge bg-dark rounded-pill px-3 shadow-sm">{{ b.trek.status }}</span></td>
+                                                </tr>
+                                            {% endif %}
+                                        {% endfor %}
                                         
-                                        <td>
-                                
-                                            <span class="badge bg-success">
-                                                {{ b.status }}
-                                            </span>
-                                        </td>
-                                        <td>{{ b.trek.status }}</td>
-                                        <td>
-                                            <a href="/cancel_trekker_booking/{{ b.id }}" class="btn btn-outline-danger btn-sm">
-                                                Cancel Bookings
-                                            </a>
-                                        </td>
+                                        {% if not ns2.has_history %}
+                                        <tr>
+                                            <td colspan="4" class="text-center py-5 text-muted lead">
+                                                No history yet!
+                                            </td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
 
-                                    </tr>
-                                    {% else %}
-                                    <tr>
-                                        <td colspan="5" class="text-center py-4 text-muted">
-                                            You Haven't Booked any treks yet !
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                                </table>
+
+                            </div>
                         </div>
                     </div>
 
-
                 </div>
             </div>
-
-
-
         </div>
     </div>
 </div>
-
-
-
-
 
 {% endblock %}

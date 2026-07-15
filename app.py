@@ -1,17 +1,17 @@
-from flask import Flask, render_template, redirect, request
+from flask import Flask, render_template, redirect,request
 from flask_sqlalchemy import SQLAlchemy 
 from datetime import datetime
 from werkzeug.security import generate_password_hash,check_password_hash
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_login import LoginManager, UserMixin,login_user, login_required, logout_user, current_user
 from datetime import datetime
 
-app = Flask(__name__)
+app= Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///database.db'
 
 db = SQLAlchemy(app)
 
-app.secret_key = '23f3001787'
+app.secret_key='23f3001787'
 login_manager = LoginManager()
 login_manager.init_app(app)
 
@@ -27,13 +27,13 @@ login_manager.init_app(app)
 
 
 class User(db.Model, UserMixin):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), nullable=False, unique=True)
+    id = db.Column(db.Integer,primary_key=True)
+    username = db.Column(db.String(100),nullable=False, unique=True)
     email = db.Column(db.String(100), nullable=False, unique=True)
-    password = db.Column(db.String(100), nullable=False)
+    password= db.Column(db.String(100),nullable=False)
     role = db.Column(db.String(20), nullable=False, default='trekker')#admin,staff,trekker
-    status = db.Column(db.String(20), nullable=False, default='approved')
-    bookings = db.relationship('Booking', backref='user', lazy=True)#staff need approval to login 'pending' then
+    status = db.Column(db.String(20), nullable=False,default='approved')
+    bookings = db.relationship('Booking', backref='user')#staff need approval to login 'pending' then
 
 
 class Trek(db.Model):
@@ -43,9 +43,9 @@ class Trek(db.Model):
     difficulty = db.Column(db.String(100),nullable=False)#easy,moderate,hard
     duration_days = db.Column(db.Integer,nullable=False)
     available_slots = db.Column(db.Integer,nullable=False)
-    status = db.Column(db.String(100),nullable=False, default='Pending') #pending,approved,open,closed,completed
+    status = db.Column(db.String(100),nullable=False, default='Pending') #pending,approved,open,closed,ongoing,completed
     staff_id = db.Column(db.Integer,db.ForeignKey('user.id'))
-    bookings = db.relationship('Booking', backref='trek', lazy=True)
+    bookings = db.relationship('Booking', backref='trek')
     staff=db.relationship('User',backref='assigned_treks')
     start_date = db.Column(db.Date,nullable=False)
 
@@ -53,7 +53,7 @@ class Booking(db.Model):
     id = db.Column(db.Integer,primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     trek_id = db.Column(db.Integer, db.ForeignKey('trek.id'))
-    status = db.Column(db.String(20),nullable=False, default="Booked")
+    status = db.Column(db.String(20),nullable=False, default="in-process")
     booking_date = db.Column(db.DateTime,default=datetime.now)
     
     
@@ -92,10 +92,11 @@ def check_if_blacklisted():
             return render_template('blacklisted.html')
         
 
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+
 
 #routes
 @app.route("/")
@@ -104,36 +105,68 @@ def home():
     search_query = request.args.get('search_query','')
     search_difficulty = request.args.get('difficulty','')
 
-    query = Trek.query.filter(Trek.status=='Open',Trek.available_slots>0)
+    today=datetime.now().date()
+    
+    # Start Open treks
+    treks_to_start = Trek.query.filter(Trek.status=='Open', Trek.start_date<=today).all()
+    for t in treks_to_start:
+        t.status='Ongoing'
+        
+    # Finish Ongoing treks
+    from datetime import timedelta
+    ongoing_treks = Trek.query.filter(Trek.status=='Ongoing').all()
+    for t in ongoing_treks:
+        end_date = t.start_date + timedelta(days=t.duration_days)
+        if today > end_date:
+            t.status = 'Completed'
+            
+    if treks_to_start or ongoing_treks:
+        db.session.commit()
+
+    query = Trek.query.filter(Trek.status.in_(['Open', 'Ongoing', 'Completed', 'Cancelled']))
+
     if search_query:
-        query = query.filter(
-            Trek.name.ilike(f"%{search_query}%") | 
+        from sqlalchemy import or_
+        query = query.filter(or_(
+            Trek.name.ilike(f"%{search_query}%"),
             Trek.location.ilike(f"%{search_query}%")
-    )
+        ))
     if search_difficulty:
         query = query.filter(Trek.difficulty==search_difficulty)
-
-
-    search_location=request.args.get('location','')
-    search_difficulty=request.args.get('difficulty','')
+        
+    search_duration = request.args.get('duration', '')
+    if search_duration and search_duration != '0':
+        try:
+            if int(search_duration) > 0:
+                query = query.filter(Trek.duration_days <= int(search_duration))
+        except ValueError:
+            pass
     
-    query=Trek.query.filter(Trek.status=='Open',Trek.available_slots>0)
-    if search_location:
-        query=query.filter(Trek.location.ilike(f"%{search_location}%"))
-    
-    if search_difficulty:
-        query=query.filter(Trek.difficulty==search_difficulty)
-
-    
-    available_treks=query.all()
+    from sqlalchemy import case
+    order_rule = case(
+        (Trek.status == 'Open', 1),
+        (Trek.status == 'Ongoing', 2),
+        else_=3
+    )
+    available_treks=query.order_by(order_rule).all()
     
     my_booked_trek_ids=[]
+    my_cancelled_trek_ids=[]
     
     if current_user.is_authenticated and current_user.role=='trekker':
-        my_booked_trek_ids=[b.trek_id for b in current_user.bookings]
+        my_booked_trek_ids=[b.trek_id for b in current_user.bookings if b.status in ['Booked', 'in-process']]
+        my_cancelled_trek_ids=[b.trek_id for b in current_user.bookings if b.status in ['Cancelled', 'Canceled', 'Removed']]
     
-    return render_template("index.html",available_treks=available_treks,
-                           my_booked_trek_ids=my_booked_trek_ids)
+    return render_template("index.html", 
+                           available_treks=available_treks, 
+                           my_booked_trek_ids=my_booked_trek_ids,
+                           my_cancelled_trek_ids=my_cancelled_trek_ids,
+                           search_query=search_query,
+                           search_difficulty=search_difficulty,
+                           search_duration=search_duration)
+    
+    
+    
     
 @app.route("/book_trek/<int:id>")
 @login_required
@@ -142,19 +175,44 @@ def book_trek(id):
         return redirect('/')
     
     existing=Booking.query.filter_by(user_id=current_user.id,trek_id=id).first()
+    
     if existing:
-        return redirect('/?error=already_booked')
+        return redirect('/')
     trek=Trek.query.get(id)
     
     if trek and trek.status=='Open' and trek.available_slots>0:
-        trek.available_slots-=1
-        
-        new_booking=Booking(user_id=current_user.id,trek_id=trek.id,status='Booked')
+        #inprocess
+        new_booking=Booking(user_id=current_user.id,trek_id=trek.id,status='in-process')
         db.session.add(new_booking)
         db.session.commit()
+        return redirect(f'/payment/{new_booking.id}')
     
-    return redirect('/trekker_dashboard?open_tab=bookings')
+    return redirect('/')
+
+
     
+@app.route("/payment/<int:booking_id>")
+@login_required
+def payment(booking_id):
+    booking=Booking.query.get(booking_id)
+    if not booking or booking.user_id!=current_user.id or booking.status!='in-process':
+        return redirect('/')
+    return render_template('payments.html',booking=booking)
+
+
+@app.route("/process_payment/<int:booking_id>", methods=['POST'])
+@login_required
+def process_payment(booking_id):
+    booking = Booking.query.get(booking_id)
+    if booking and booking.user_id == current_user.id and booking.status == 'in-process':
+        
+        if booking.trek.available_slots > 0:
+            booking.trek.available_slots -= 1
+            booking.status = 'Booked'
+            db.session.commit()
+        
+    return redirect('/')
+
 
 
 @app.route("/register", methods=['GET','POST'])
@@ -191,6 +249,8 @@ def register():
         
         return redirect('/login')
     return render_template('register.html', error = None )
+
+
     
     
 @app.route('/login',methods=['GET','POST'])
@@ -211,10 +271,12 @@ def login():
             elif user.role=='staff':
                 return redirect("/staff_dashboard")
             else:
-                return redirect("/trekker_dashboard")
+                return redirect("/")
         else:
             return render_template("login.html",error = "Invalid Email or Password")
     return render_template("login.html",error=None)
+
+
 
 
 @app.route('/dashboard')
@@ -256,14 +318,21 @@ def admin_dashboard():
         all_treks=Trek.query.order_by(Trek.id.desc()).all()
         
     
-    search_user=request.args.get('search_user')
+    search_user=request.args.get('search_user', '')
+    role_filter=request.args.get('role_filter', '')
+    
+    users_query = User.query.filter(User.role != 'admin')
+    
     if search_user:
         if search_user.isdigit():
-            manageable_users=User.query.filter(User.role!='admin',User.id==int(search_user)).all()
+            users_query = users_query.filter(User.id == int(search_user))
         else:
-            manageable_users=User.query.filter(User.role!='admin',User.username.ilike(f"%{search_user}%")).all()
-    else:
-        manageable_users=User.query.filter(User.role!='admin').all()
+            users_query = users_query.filter(User.username.ilike(f"%{search_user}%"))
+            
+    if role_filter:
+        users_query = users_query.filter(User.role == role_filter)
+        
+    manageable_users = users_query.all()
         
     return render_template('admin_dashboard.html', 
                            users=total_users, 
@@ -275,8 +344,10 @@ def admin_dashboard():
                            active_tab=active_tab,
                            approve_staff=approve_staff,
                            manageable_users=manageable_users,
+                           role_filter=role_filter,
                            all_bookings=all_bookings
                         )
+
 
 
 
@@ -293,20 +364,33 @@ def staff_dashboard():
                            active_tab=active_tab,
                            assigned_treks=assigned_treks)
     
+    
 
-@app.route('/update_staff_profile',methods=['POST'])
+@app.route('/profile')
 @login_required
-def update_staff_profile():
-    if current_user.role!='staff':
-        return redirect('/')
-    current_user.username=request.form.get('username')
-    
-    new_password=request.form.get('password')
-    if new_password:
-        current_user.password=generate_password_hash(new_password)
+def profile():
+    return render_template('profile.html')
+
+@app.route('/update_profile',methods=['POST'])
+@login_required
+def update_profile():
+    if current_user.role=='admin':
+        return redirect('/profile')
+    username=request.form.get('username')
+    password=request.form.get('password')
+
+    if username:
+        existing_user=User.query.filter(User.username==username).first()
+        if existing_user and existing_user.id !=current_user.id:
+            return redirect('/profile?error=username_already_taken')
+        current_user.username=username
+
+    if password:
+        current_user.password=generate_password_hash(password)
     db.session.commit()
-    
-    return redirect('/staff_dashboard?open_tab=profile')
+    return redirect('/profile?success=profile_updated')    
+
+
 
 @app.route('/update_staff_trek/<int:id>',methods=['POST'])
 @login_required
@@ -353,10 +437,12 @@ def staff_remove_participant(booking_id):
         return redirect('/')
     booking = Booking.query.get(booking_id)
     if booking and booking.trek.staff_id==current_user.id:
-        booking.trek.available_slots+=1
-        db.session.delete(booking)
+        if booking.status in ['Booked', 'in-process']:
+            booking.trek.available_slots+=1
+        booking.status = 'Removed'
         db.session.commit()
     return redirect('/staff_dashboard?open_tab=treks')
+
 
 @app.route('/trekker_dashboard')
 @login_required
@@ -365,9 +451,20 @@ def trekker_dashboard():
         return redirect('/')
     active_tab=request.args.get('open_tab','profile')
     
-
+    # Auto-cancel invalid in-process bookings
+    today = datetime.now().date()
+    changed = False
+    for b in current_user.bookings:
+        if b.status == 'in-process':
+            if b.trek.status != 'Open' or b.trek.available_slots <= 0 or b.trek.start_date <= today:
+                b.status = 'Cancelled'
+                changed = True
+    if changed:
+        db.session.commit()
+    
     return render_template('trekker_dashboard.html',
                            active_tab=active_tab)
+
 
 
 
@@ -378,26 +475,16 @@ def cancel_trekker_booking(booking_id):
         return redirect('/')
     booking=Booking.query.get(booking_id)
     
-    if booking and booking.user_id ==current_user.id:
-        booking.trek.available_slots+=1
-        db.session.delete(booking)
+    if booking and booking.user_id ==current_user.id and booking.trek.status=='Open':
+        if booking.status=='Booked':
+            booking.trek.available_slots+=1
+        booking.status='Cancelled'
         db.session.commit()
     
 
     return redirect('/trekker_dashboard?open_tab=bookings')
 
 
-@app.route('/update_trekker_profile',methods=['POST'])
-@login_required
-def update_trekker_profile():
-    if current_user.role!='trekker':
-        return redirect('/')
-    current_user.username=request.form.get('username')
-    new_password=request.form.get('password')
-    if new_password:
-        current_user.password=generate_password_hash(new_password)
-    db.session.commit()
-    return redirect('/trekker_dashboard?open_tab=profile')
 
 
 
@@ -533,5 +620,5 @@ def logout():
 
 
 if __name__ == '__main__':
-    app.run(port=9191,debug=True)
+    app.run(port=9191)
     
